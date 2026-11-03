@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14213D">
+<title>人工跳字機</title>
+<style>
+:root{
+  --bg:#E9EEF7;--card:#fff;--ink:#14213D;--mute:#6B7690;--line:#DCE3F0;
+  --hero:#14213D;--heroTxt:#fff;--gold:#FFC83D;--track:#2B3A63;--chip:#EEF2FA;
+  box-sizing:border-box;
+  padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0B1120;--card:#161F36;--ink:#EAF0FF;--mute:#93A0BF;--line:#243050;
+  --hero:#1D2B52;--track:#0F1830;--chip:#1E2947}
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"PingFang HK","Noto Sans HK","Microsoft JhengHei",sans-serif;
+  min-height:100vh;padding:14px 14px 40px;max-width:520px;margin:0 auto}
+.top{display:flex;justify-content:space-between;align-items:center;padding:4px 2px 12px}
+.date{font-size:14px;color:var(--mute);font-variant-numeric:tabular-nums}
+.date b{display:block;font-size:22px;color:var(--ink);font-weight:700;letter-spacing:.5px}
+.gear{border:0;background:var(--card);color:var(--ink);width:44px;height:44px;border-radius:50%;font-size:20px;box-shadow:0 1px 0 var(--line)}
+.hero{background:var(--hero);color:var(--heroTxt);border-radius:26px;padding:22px 20px 20px}
+.pill{display:inline-block;font-size:13px;font-weight:700;padding:5px 12px;border-radius:99px;background:var(--gold);color:#14213D}
+.pill.off{background:#3B4A74;color:#DCE4FF}
+.sub{margin:12px 0 2px;font-size:14px;opacity:.75}
+.big{font-size:clamp(36px,12.5vw,58px);font-weight:800;font-variant-numeric:tabular-nums;color:var(--gold);line-height:1.1;letter-spacing:-.5px;white-space:nowrap}
+.big small{font-size:.55em;font-weight:600;opacity:.9;margin-right:4px}
+.big .dim{opacity:.55;font-weight:600}
+.rate{margin-top:8px;font-size:15px;font-variant-numeric:tabular-nums}
+.rate b{color:var(--gold)}
+.bar{height:10px;background:var(--track);border-radius:9px;margin:18px 0 8px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--gold);border-radius:9px;transition:width .3s}
+.barTxt{display:flex;justify-content:space-between;font-size:13px;opacity:.8;font-variant-numeric:tabular-nums}
+.fun{margin:14px 0;padding:14px 16px;background:var(--card);border-radius:18px;font-size:15px;line-height:1.5}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.st{background:var(--card);border-radius:18px;padding:14px 16px}
+.st span{display:block;font-size:13px;color:var(--mute)}
+.st b{display:block;margin-top:4px;font-size:19px;font-variant-numeric:tabular-nums}
+.st.wide{grid-column:1/3}
+.foot{margin-top:16px;text-align:center;font-size:12px;color:var(--mute);line-height:1.6}
+/* settings sheet */
+.sheet{position:fixed;inset:0;background:rgba(5,10,25,.55);display:none;align-items:flex-end;z-index:9}
+.sheet.on{display:flex}
+.panel{background:var(--card);width:100%;max-width:520px;margin:0 auto;border-radius:26px 26px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom,0px));max-height:90vh;overflow-y:auto}
+.panel h2{margin:0 0 14px;font-size:20px;display:flex;justify-content:space-between;align-items:center}
+.done{border:0;background:var(--ink);color:var(--bg);font-size:15px;font-weight:700;padding:10px 18px;border-radius:99px}
+.seg{display:flex;background:var(--chip);border-radius:14px;padding:4px;margin-bottom:14px}
+.seg button{flex:1;border:0;background:transparent;color:var(--mute);font-size:16px;font-weight:700;padding:11px;border-radius:11px}
+.seg button.on{background:var(--ink);color:var(--bg)}
+label{display:block;font-size:13px;color:var(--mute);margin:12px 0 5px}
+input{width:100%;font-size:16px;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);font-family:inherit;min-height:46px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.wd{display:flex;gap:6px}
+.wd button{flex:1;border:0;background:var(--chip);color:var(--mute);font-size:15px;font-weight:700;height:44px;border-radius:12px}
+.wd button.on{background:var(--gold);color:#14213D}
+.hint{font-size:12px;color:var(--mute);margin-top:6px}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="date"><span id="d1"></span><b id="d2"></b></div>
+  <button class="gear" id="open" aria-label="設定">⚙</button>
+</div>
+
+<section class="hero">
+  <span class="pill" id="pill">…</span>
+  <div class="sub" id="sub"></div>
+  <div class="sub" style="margin-top:14px">今日已賺</div>
+  <div class="big" id="big"></div>
+  <div class="rate">而家每秒賺 <b id="ps"></b></div>
+  <div class="bar"><i id="fill"></i></div>
+  <div class="barTxt"><span id="pct"></span><span id="hrs"></span></div>
+</section>
+
+<div class="fun" id="fun"></div>
+
+<div class="grid">
+  <div class="st wide"><span>本月累計（過咗嘅工作日當全勤計）</span><b id="mon"></b></div>
+  <div class="st"><span>時薪</span><b id="hr"></b></div>
+  <div class="st"><span>日薪</span><b id="dy"></b></div>
+  <div class="st"><span>每分鐘</span><b id="pm"></b></div>
+  <div class="st"><span>每小時</span><b id="ph"></b></div>
+</div>
+<div class="foot">資料只存喺你部手機（localStorage），唔會上傳。</div>
+
+<div class="sheet" id="sheet">
+  <div class="panel">
+    <h2>設定 <button class="done" id="close">完成</button></h2>
+    <div class="seg"><button data-m="monthly" id="mMon">月薪</button><button data-m="hourly" id="mHr">時薪</button></div>
+    <label id="salLbl">月薪</label>
+    <input id="salary" type="number" inputmode="decimal" min="0">
+    <div class="row">
+      <div><label>貨幣符號</label><input id="cur" maxlength="5"></div>
+      <div id="daysBox"><label>每月工作日數</label><input id="days" type="number" inputmode="decimal" step="0.25" min="1" max="31"></div>
+    </div>
+    <label>工作日</label>
+    <div class="wd" id="wd"></div>
+    <div class="row">
+      <div><label>上班</label><input id="start" type="time"></div>
+      <div><label>下班</label><input id="end" type="time"></div>
+      <div><label>午飯開始</label><input id="ls" type="time"></div>
+      <div><label>午飯完</label><input id="le" type="time"></div>
+    </div>
+    <div class="hint">午飯時間唔計糧；開始同完一樣就等於冇午休。</div>
+    <div class="row">
+      <div><label>用嚟比較嘅嘢</label><input id="item" maxlength="12"></div>
+      <div><label>價錢</label><input id="price" type="number" inputmode="decimal" min="1"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const DEF={mode:'monthly',salary:30000,days:21.75,cur:'HK$',start:'09:00',end:'18:00',ls:'13:00',le:'14:00',wd:[1,2,3,4,5],item:'一杯奶茶',price:20,seen:false};
+let S;
+try{S={...DEF,...JSON.parse(localStorage.getItem('payclock')||'{}')}}catch(e){S={...DEF}}
+const save=()=>{try{localStorage.setItem('payclock',JSON.stringify(S))}catch(e){}};
+const tm=t=>{const [a,b]=(t||'0:0').split(':');return (+a)*3600+(+b)*60};
+const p2=n=>String(n).padStart(2,'0');
+const money=(n,d=2)=>S.cur+n.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const dur=s=>{s=Math.max(0,Math.floor(s));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;
+  return (h?h+'小時':'')+(h||m?m+'分':'')+x+'秒'};
+
+function calc(){
+  const st=tm(S.start),en=Math.max(st+60,tm(S.end)),ls=tm(S.ls),le=Math.max(ls,tm(S.le));
+  const lunch=Math.max(0,Math.min(le,en)-Math.max(ls,st));
+  const paid=Math.max(60,en-st-lunch);
+  const sal=+S.salary||0,days=+S.days||21.75;
+  const daily=S.mode==='monthly'?sal/days:sal*paid/3600;
+  return{st,en,ls,le,paid,daily,rate:daily/paid};
+}
+function workedAt(x,c){
+  const t=Math.min(Math.max(x,c.st),c.en);
+  const ov=Math.max(0,Math.min(t,c.le)-Math.max(c.st,c.ls));
+  return t-c.st-ov;
+}
+const DAY=['日','一','二','三','四','五','六'];
+
+function tick(){
+  const now=new Date(),c=calc();
+  const sec=now.getHours()*3600+now.getMinutes()*60+now.getSeconds()+now.getMilliseconds()/1000;
+  const isWd=S.wd.includes(now.getDay());
+  const w=isWd?workedAt(sec,c):0;
+  const earned=w*c.rate;
+  // status
+  let label,off=false,sub='';
+  if(!isWd){label='休息日';off=true;sub='今日唔使返工 🎉'}
+  else if(sec<c.st){label='未上班';off=true;sub='距離上班仲有 '+dur(c.st-sec)}
+  else if(sec>=c.en){label='已收工';off=true;sub='今日辛苦晒 👏'}
+  else if(sec>=c.ls&&sec<c.le){label='午飯時間';off=true;sub='飯後 '+dur(c.le-sec)+' 繼續賺'}
+  else{label='上班中';sub='距離收工仲有 '+dur(c.en-sec)}
+  $('pill').textContent=label;$('pill').className='pill'+(off?' off':'');
+  $('sub').textContent=sub;
+  $('d1').textContent=now.getFullYear()+'-'+p2(now.getMonth()+1)+'-'+p2(now.getDate())+' 星期'+DAY[now.getDay()];
+  $('d2').textContent=p2(now.getHours())+':'+p2(now.getMinutes())+':'+p2(now.getSeconds());
+  // big number
+  const f=earned.toFixed(4),[ip,dp]=f.split('.');
+  $('big').innerHTML='<small>'+S.cur+'</small>'+(+ip).toLocaleString('en-US')+'.'+dp.slice(0,2)+'<span class="dim">'+dp.slice(2)+'</span>';
+  const working=!off;
+  $('ps').textContent=(working?c.rate:0).toFixed(4)+' / 秒';
+  const pct=isWd?w/c.paid*100:0;
+  $('fill').style.width=pct+'%';
+  $('pct').textContent='今日進度 '+pct.toFixed(1)+'%';
+  $('hrs').textContent='已返 '+(w/3600).toFixed(2)+' / '+(c.paid/3600).toFixed(2)+' 小時';
+  // fun
+  const price=+S.price>0?+S.price:20,item=S.item||'一杯奶茶';
+  const n=Math.floor(earned/price);
+  let fun=isWd?'今日已經賺咗 <b>'+n+'</b> 份'+item+'（'+money(price,0)+'）。':'今日冇人工，但你值得好好休息。';
+  if(working&&c.rate>0){fun+='<br>再過 <b>'+dur((price-earned%price)/c.rate)+'</b>，又賺到一份。'}
+  $('fun').innerHTML=fun;
+  // month
+  let mon=0;const y=now.getFullYear(),mo=now.getMonth();
+  for(let d=1;d<now.getDate();d++){if(S.wd.includes(new Date(y,mo,d).getDay()))mon+=c.daily}
+  mon+=earned;
+  $('mon').textContent=money(mon);
+  $('hr').textContent=money(c.rate*3600);
+  $('dy').textContent=money(c.daily);
+  $('pm').textContent=money(c.rate*60,3);
+  $('ph').textContent=money(c.rate*3600);
+}
+
+/* settings UI */
+function fill(){
+  $('salary').value=S.salary;$('cur').value=S.cur;$('days').value=S.days;
+  ['start','end','ls','le','item','price'].forEach(k=>$(k).value=S[k]);
+  $('mMon').classList.toggle('on',S.mode==='monthly');$('mHr').classList.toggle('on',S.mode==='hourly');
+  $('salLbl').textContent=S.mode==='monthly'?'月薪':'時薪';
+  $('daysBox').style.display=S.mode==='monthly'?'':'none';
+  $('wd').innerHTML=[1,2,3,4,5,6,0].map(d=>'<button data-d="'+d+'" class="'+(S.wd.includes(d)?'on':'')+'">'+DAY[d]+'</button>').join('');
+}
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{S.mode=b.dataset.m;save();fill();tick()});
+$('wd').onclick=e=>{const d=e.target.dataset.d;if(d===undefined)return;const n=+d;
+  S.wd=S.wd.includes(n)?S.wd.filter(x=>x!==n):[...S.wd,n];save();fill();tick()};
+['salary','days','price'].forEach(k=>$(k).oninput=e=>{S[k]=parseFloat(e.target.value)||0;save();tick()});
+['cur','start','end','ls','le','item'].forEach(k=>$(k).oninput=e=>{S[k]=e.target.value;save();tick()});
+$('open').onclick=()=>{fill();$('sheet').classList.add('on')};
+$('close').onclick=()=>{S.seen=true;save();$('sheet').classList.remove('on')};
+$('sheet').onclick=e=>{if(e.target.id==='sheet')$('close').click()};
+
+fill();tick();
+if(!S.seen)$('open').click();
+setInterval(tick,50);
+</script>
+</body>
+</html>
